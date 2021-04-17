@@ -1,6 +1,7 @@
-use std::{future::Future, path::PathBuf};
+use std::{future::Future, path::PathBuf, time::Instant};
 // use futures::
 
+use chrono::{Local, Timelike};
 use teloxide::{prelude::*, types::InputFile};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
@@ -26,11 +27,16 @@ async fn handle_messages(rx: DispatcherHandlerRx<Bot, Message>) {
         .for_each_concurrent(None, |msg| async move {
             match &msg.update.kind {
                 teloxide::types::MessageKind::Common(_) => {
-                    msg.answer_photo(InputFile::File("resources/img.jpg".into()))
-                        .send()
-                        .await
-                        .log_on_error()
-                        .await;
+                    let time = Local::now();
+                    let hour = time.hour();
+                    let lat_at_night = 0 >= hour && hour <= 6;
+                    if true {
+                        msg.answer_photo(InputFile::File("resources/img.jpg".into()))
+                            .send()
+                            .await
+                            .log_on_error()
+                            .await;
+                    }
                 }
                 _ => (),
             }
