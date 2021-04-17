@@ -30,7 +30,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: ${{ secrets.AzureAppService_ContainerUsername_68234e70da954218a954b3c876358a1b }}/lokivklokenaandoke/trade-sleep-tg-bot:${{ github.sha }}
+        tags: lokivklokenaandoke/trade-sleep-tg-bot:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +48,4 @@ jobs:
         app-name: 'trade-sleep-tg-bot'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_3333655135cc4312923826913912e87f }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_68234e70da954218a954b3c876358a1b }}/lokivklokenaandoke/trade-sleep-tg-bot:${{ github.sha }}'
+        images: 'index.docker.io/lokivklokenaandoke/trade-sleep-tg-bot:${{ github.sha }}'
