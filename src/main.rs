@@ -5,8 +5,12 @@ use chrono_tz::Europe::Athens;
 use teloxide::{prelude::*, types::InputFile};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
+use chrono::DateTime;
+use chrono_tz::Tz;
+use futures::lock::Mutex;
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
+use std::sync::Arc;
 use warp::{http::Response, Filter};
 
 #[tokio::main]
@@ -35,15 +39,21 @@ async fn run() {
 
     let bot = Bot::from_env();
 
+    let map = Arc::new(Mutex::new(HashMap::new()));
+
     let dispatch = async move {
-        let x = Dispatcher::new(bot).messages_handler(|rx| handle_messages(rx));
+        let x = Dispatcher::new(bot).messages_handler(|rx| handle_messages(rx, map));
         x.dispatch().await
     };
 
     tokio::join!(dispatch, serve);
 }
 
-async fn handle_messages(rx: DispatcherHandlerRx<Bot, Message>) {
+async fn handle_messages(
+    rx: DispatcherHandlerRx<Bot, Message>,
+    chat_last_self_msg: Arc<Mutex<HashMap<i64, DateTime<Tz>>>>,
+) {
+    let ref_chat_map = &chat_last_self_msg;
     UnboundedReceiverStream::new(rx)
         .for_each_concurrent(None, |msg| async move {
             log::info!("{:?}", msg);
@@ -55,10 +65,22 @@ async fn handle_messages(rx: DispatcherHandlerRx<Bot, Message>) {
                     let late_at_night = 0 >= hour && hour <= 6;
                     let debug_respond = env::var("TG_BOT_TRADEOFFER_DEBUG");
                     if debug_respond.is_ok() || late_at_night {
-                        let mut resp =
-                            msg.answer_photo(InputFile::File("resources/img.jpg".into()));
-                        resp.reply_to_message_id = Some(msg.update.id);
-                        resp.send().await.log_on_error().await;
+                        let chat_map = ref_chat_map.clone();
+                        let mut chat_map = chat_map.lock().await;
+
+                        if debug_respond.is_ok()
+                            || chat_map
+                                .get(&msg.update.chat_id())
+                                .map(|prev_time| (*prev_time - time).num_minutes() > 60)
+                                .unwrap_or(true)
+                        {
+                            let mut resp =
+                                msg.answer_photo(InputFile::File("resources/img.jpg".into()));
+                            resp.reply_to_message_id = Some(msg.update.id);
+                            resp.send().await.log_on_error().await;
+
+                            chat_map.insert(msg.update.chat_id(), time);
+                        }
                     }
                 }
                 _ => (),
