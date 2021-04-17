@@ -19,8 +19,6 @@ async fn run() {
     log::info!("Starting the bot...");
 
     let example1 = warp::get()
-        .and(warp::path("api"))
-        .and(warp::path("HttpExample"))
         .and(warp::query::<HashMap<String, String>>())
         .map(|p: HashMap<String, String>| match p.get("name") {
             Some(name) => Response::builder().body(format!("Hello, {}. This HTTP triggered function executed successfully.", name)),
@@ -57,11 +55,10 @@ async fn handle_messages(rx: DispatcherHandlerRx<Bot, Message>) {
                     let late_at_night = 0 >= hour && hour <= 6;
                     let debug_respond = env::var("TG_BOT_TRADEOFFER_DEBUG");
                     if debug_respond.is_ok() || late_at_night {
-                        msg.answer_photo(InputFile::File("resources/img.jpg".into()))
-                            .send()
-                            .await
-                            .log_on_error()
-                            .await;
+                        let mut resp =
+                            msg.answer_photo(InputFile::File("resources/img.jpg".into()));
+                        resp.reply_to_message_id = Some(msg.update.id);
+                        resp.send().await.log_on_error().await;
                     }
                 }
                 _ => (),
