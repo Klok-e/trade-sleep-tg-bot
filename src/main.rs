@@ -1,6 +1,6 @@
-use std::{future::Future, path::PathBuf, time::Instant};
+use std::env;
 
-use chrono::{Local, TimeZone, Timelike, Utc};
+use chrono::{TimeZone, Timelike, Utc};
 use chrono_tz::Europe::Athens;
 use teloxide::{prelude::*, types::InputFile};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -30,8 +30,9 @@ async fn handle_messages(rx: DispatcherHandlerRx<Bot, Message>) {
                     let time = Utc::now().naive_utc();
                     let time = Athens.from_utc_datetime(&time);
                     let hour = time.hour();
-                    let lat_at_night = 0 >= hour && hour <= 6;
-                    if true {
+                    let late_at_night = 0 >= hour && hour <= 6;
+                    let debug_respond = env::var("TG_BOT_TRADEOFFER_DEBUG");
+                    if debug_respond.is_ok() || late_at_night {
                         msg.answer_photo(InputFile::File("resources/img.jpg".into()))
                             .send()
                             .await
