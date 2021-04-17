@@ -1,7 +1,7 @@
 use std::{future::Future, path::PathBuf, time::Instant};
-// use futures::
 
-use chrono::{Local, Timelike};
+use chrono::{Local, TimeZone, Timelike, Utc};
+use chrono_tz::Europe::Athens;
 use teloxide::{prelude::*, types::InputFile};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
@@ -27,7 +27,8 @@ async fn handle_messages(rx: DispatcherHandlerRx<Bot, Message>) {
         .for_each_concurrent(None, |msg| async move {
             match &msg.update.kind {
                 teloxide::types::MessageKind::Common(_) => {
-                    let time = Local::now();
+                    let time = Utc::now().naive_utc();
+                    let time = Athens.from_utc_datetime(&time);
                     let hour = time.hour();
                     let lat_at_night = 0 >= hour && hour <= 6;
                     if true {
