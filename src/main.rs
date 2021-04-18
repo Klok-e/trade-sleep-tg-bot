@@ -56,22 +56,36 @@ async fn handle_messages(
     let ref_chat_map = &chat_last_self_msg;
     UnboundedReceiverStream::new(rx)
         .for_each_concurrent(None, |msg| async move {
-            log::info!("{:?}", msg);
+            log::info!("msg: {:?}", msg);
             match &msg.update.kind {
                 teloxide::types::MessageKind::Common(_) => {
                     let time = Utc::now().naive_utc();
                     let time = Athens.from_utc_datetime(&time);
                     let hour = time.hour();
                     let late_at_night = 0 >= hour && hour <= 6;
-                    let debug_respond = env::var("TG_BOT_TRADEOFFER_DEBUG");
-                    if debug_respond.is_ok() || late_at_night {
+                    log::info!("late_at_night?: {}", late_at_night);
+
+                    let debug_respond_always = env::var("TG_BOT_RESPOND_ALWAYS_DEBUG");
+                    log::info!("debug?: {}", debug_respond_always.is_ok());
+
+                    let debug_ignore_late_at_night = env::var("TG_BOT_IGNORE_NIGHT_DEBUG");
+                    log::info!("ignore night?: {}", debug_ignore_late_at_night.is_ok());
+
+                    if debug_ignore_late_at_night.is_ok() || late_at_night {
                         let chat_map = ref_chat_map.clone();
                         let mut chat_map = chat_map.lock().await;
 
-                        if debug_respond.is_ok()
+                        if debug_respond_always.is_ok()
                             || chat_map
                                 .get(&msg.update.chat_id())
-                                .map(|prev_time| (*prev_time - time).num_minutes() > 60)
+                                .map(|prev_time| {
+                                    let mins = (time - *prev_time).num_minutes();
+                                    log::info!(
+                                        "minutes passed from the time of the last bots message: {}",
+                                        mins
+                                    );
+                                    mins > 60
+                                })
                                 .unwrap_or(true)
                         {
                             let mut resp =
