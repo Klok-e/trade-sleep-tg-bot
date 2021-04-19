@@ -56,7 +56,7 @@ async fn handle_messages(
     let ref_chat_map = &chat_last_self_msg;
     UnboundedReceiverStream::new(rx)
         .for_each_concurrent(None, |msg| async move {
-            log::info!("msg: {:?}", msg);
+            log::info!("msg: {:?}", msg.update);
             match &msg.update.kind {
                 teloxide::types::MessageKind::Common(_) => {
                     let time = Utc::now().naive_utc();
@@ -88,10 +88,13 @@ async fn handle_messages(
                                 })
                                 .unwrap_or(true)
                         {
+                            log::info!("sending a message...");
                             let mut resp =
                                 msg.answer_photo(InputFile::File("resources/img.jpg".into()));
                             resp.reply_to_message_id = Some(msg.update.id);
                             resp.send().await.log_on_error().await;
+
+                            log::info!("message sent.");
 
                             chat_map.insert(msg.update.chat_id(), time);
                         }
