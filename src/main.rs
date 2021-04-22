@@ -29,8 +29,8 @@ async fn run() {
             None => Response::builder().body(String::from("This HTTP triggered function executed successfully. Pass a name in the query string for a personalized response.")),
         });
 
-    let port_key = "FUNCTIONS_CUSTOMHANDLER_PORT";
-    let port: u16 = match env::var(port_key) {
+    let port_key = "BOT_CUSTOMHANDLER_PORT";
+    let port: u16 = match env::var(port_key) { 
         Ok(val) => val.parse().expect("Custom Handler port is not a number!"),
         Err(_) => 3000,
     };
