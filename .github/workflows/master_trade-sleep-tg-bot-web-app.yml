@@ -48,4 +48,4 @@ jobs:
         app-name: 'trade-sleep-tg-bot-web-app'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_dbb45b49471d4fc2b0259d3b4d35a0c7 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_4a85b5f8857d4304bc35d47293dea133 }}/lokivklokenaandoke/trade-sleep-tg-bot:${{ github.sha }}'
+        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_ddedaac99d3b478eaee670c2c60278f3 }}/lokivklokenaandoke/trade-sleep-tg-bot:${{ github.sha }}'
