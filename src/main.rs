@@ -30,7 +30,7 @@ async fn run() {
         });
 
     let port_key = "BOT_CUSTOMHANDLER_PORT";
-    let port: u16 = match env::var(port_key) { 
+    let port: u16 = match env::var(port_key) {
         Ok(val) => val.parse().expect("Custom Handler port is not a number!"),
         Err(_) => 3000,
     };
@@ -62,8 +62,13 @@ async fn handle_messages(
                     let time = Utc::now().naive_utc();
                     let time = Athens.from_utc_datetime(&time);
                     let hour = time.hour();
-                    let late_at_night = 0 >= hour && hour <= 6;
-                    log::info!("late_at_night?: {}", late_at_night);
+                    let late_at_night = hour <= 6;
+                    log::info!(
+                        "time: {}; hour: {}; late_at_night?: {}",
+                        time,
+                        hour,
+                        late_at_night
+                    );
 
                     let debug_respond_always = env::var("TG_BOT_RESPOND_ALWAYS_DEBUG");
                     log::info!("debug?: {}", debug_respond_always.is_ok());
