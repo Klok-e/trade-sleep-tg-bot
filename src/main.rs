@@ -46,7 +46,7 @@ async fn run() {
         x.dispatch().await
     };
 
-    tokio::join!(dispatch, serve);
+    tokio::join!(dispatch, serve); 
 }
 
 async fn handle_messages(
