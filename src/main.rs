@@ -42,7 +42,7 @@ async fn run() {
     let map = Arc::new(Mutex::new(HashMap::new()));
 
     let dispatch = async move {
-        let x = Dispatcher::new(bot).messages_handler(|rx| handle_messages(rx, map));
+        let mut x = Dispatcher::new(bot).messages_handler(|rx| handle_messages(rx, map));
         x.dispatch().await
     };
 
@@ -57,55 +57,54 @@ async fn handle_messages(
     UnboundedReceiverStream::new(rx)
         .for_each_concurrent(None, |msg| async move {
             log::info!("msg: {:?}", msg.update);
-            match &msg.update.kind {
-                teloxide::types::MessageKind::Common(_) => {
-                    let time = Utc::now().naive_utc();
-                    let time = Athens.from_utc_datetime(&time);
-                    let hour = time.hour();
-                    let late_at_night = hour <= 6;
+            if let teloxide::types::MessageKind::Common(_) = &msg.update.kind {
+                let time = Utc::now().naive_utc();
+                let time = Athens.from_utc_datetime(&time);
+                let hour = time.hour();
+                let late_at_night = hour <= 6;
+                log::info!(
+                    "time: {}; hour: {}; late_at_night?: {}",
+                    time,
+                    hour,
+                    late_at_night
+                );
+
+                let passed_more_than_hour = |prev_time: &DateTime<Tz>| {
+                    let mins = (time - *prev_time).num_minutes();
                     log::info!(
-                        "time: {}; hour: {}; late_at_night?: {}",
-                        time,
-                        hour,
-                        late_at_night
+                        "minutes passed from the time of the last bots message: {}",
+                        mins
                     );
+                    mins > 60
+                };
 
-                    let debug_respond_always = env::var("TG_BOT_RESPOND_ALWAYS_DEBUG");
-                    log::info!("debug?: {}", debug_respond_always.is_ok());
+                let debug_respond_always = env::var("TG_BOT_RESPOND_ALWAYS_DEBUG");
+                log::info!("debug?: {}", debug_respond_always.is_ok());
 
-                    let debug_ignore_late_at_night = env::var("TG_BOT_IGNORE_NIGHT_DEBUG");
-                    log::info!("ignore night?: {}", debug_ignore_late_at_night.is_ok());
+                let debug_ignore_late_at_night = env::var("TG_BOT_IGNORE_NIGHT_DEBUG");
+                log::info!("ignore night?: {}", debug_ignore_late_at_night.is_ok());
 
-                    if debug_ignore_late_at_night.is_ok() || late_at_night {
-                        let chat_map = ref_chat_map.clone();
-                        let mut chat_map = chat_map.lock().await;
+                if debug_ignore_late_at_night.is_ok() || late_at_night {
+                    let chat_map = ref_chat_map.clone();
+                    let mut chat_map = chat_map.lock().await;
 
-                        if debug_respond_always.is_ok()
-                            || chat_map
-                                .get(&msg.update.chat_id())
-                                .map(|prev_time| {
-                                    let mins = (time - *prev_time).num_minutes();
-                                    log::info!(
-                                        "minutes passed from the time of the last bots message: {}",
-                                        mins
-                                    );
-                                    mins > 60
-                                })
-                                .unwrap_or(true)
-                        {
-                            log::info!("sending a message...");
-                            let mut resp =
-                                msg.answer_photo(InputFile::File("resources/img.jpg".into()));
-                            resp.reply_to_message_id = Some(msg.update.id);
-                            resp.send().await.log_on_error().await;
+                    if debug_respond_always.is_ok()
+                        || chat_map
+                            .get(&msg.update.chat_id())
+                            .map(passed_more_than_hour)
+                            .unwrap_or(true)
+                    {
+                        log::info!("sending a message...");
+                        let mut resp =
+                            msg.answer_photo(InputFile::File("resources/img.jpg".into()));
+                        resp.reply_to_message_id = Some(msg.update.id);
+                        resp.send().await.log_on_error().await;
 
-                            log::info!("message sent.");
+                        log::info!("message sent.");
 
-                            chat_map.insert(msg.update.chat_id(), time);
-                        }
+                        chat_map.insert(msg.update.chat_id(), time);
                     }
                 }
-                _ => (),
             }
         })
         .await;
